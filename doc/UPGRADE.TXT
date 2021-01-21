@@ -1,0 +1,6 @@
+---------------------------------------
+void set_mouse_graphic_cursor(int, int, unsigned*)
+void set_mouse_text_cursor(*unsigned)
+
+int mouse_button_clicked(int mbutton)
+

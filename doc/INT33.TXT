@@ -1,0 +1,174 @@
+--------M-330027-----------------------------
+INT 33 - MS MOUSE v7.01+ - GET SCREEN/CURSOR MASKS AND MICKEY COUNTS
+        AX = 0027h
+Return: AX = screen-mask value (or hardware cursor scan-line start for v7.02+)
+        BX = cursor-mask value (or hardware cursor scan-line stop for v7.02+)
+        CX = horizontal mickeys moved since last call
+        DX = vertical mickeys moved since last call
+SeeAlso: AX=000Bh
+****************************************************************************
+****************************************************************************
+--------M-33000C-----------------------------
+INT 33 - MS MOUSE v1.0+ - DEFINE INTERRUPT SUBROUTINE PARAMETERS
+        AX = 000Ch
+        CX = call mask (see #1618)
+        ES:DX -> FAR routine (see #1619)
+SeeAlso: AX=0018h
+
+Bitfields for mouse call mask:
+Bit(s)  Description     (Table 1618)
+ 0      call if mouse moves
+ 1      call if left button pressed
+ 2      call if left button released
+ 3      call if right button pressed
+ 4      call if right button released
+ 5      call if middle button pressed (Mouse Systems/Logitech/Genius mouse)
+ 6      call if middle button released (Mouse Systems/Logitech/Genius mouse)
+ 7-15   unused
+Note:   some versions of the Microsoft documentation incorrectly state that CX
+          bit 0 means call if mouse cursor moves
+
+(Table 1619)
+Values interrupt routine is called with:
+        AX = condition mask (same bit assignments as call mask)
+        BX = button state
+        CX = cursor column
+        DX = cursor row
+        SI = horizontal mickey count
+        DI = vertical mickey count
+Notes:  some versions of the Microsoft documentation erroneously swap the
+          meanings of SI and DI
+        in text modes, the row and column will be reported as a multiple of
+          the character cell size, typically 8x8 pixels
+--------M-330014-----------------------------
+INT 33 - MS MOUSE v3.0+ - EXCHANGE INTERRUPT SUBROUTINES
+        AX = 0014h
+        CX = call mask (see #1618)
+        ES:DX -> FAR routine
+Return: CX = call mask of previous interrupt routine
+        ES:DX = FAR address of previous interrupt routine
+SeeAlso: AX=000Ch,AX=0018h
+--------M-330018-----------------------------
+INT 33 - MS MOUSE v6.0+ - SET ALTERNATE MOUSE USER HANDLER
+        AX = 0018h
+        CX = call mask (see #1621)
+        ES:DX -> FAR routine to be invoked on mouse events (see #1622)
+Return: AX = status
+            0018h if successful
+            FFFFh on error
+Notes:  up to three handlers can be defined by separate calls to this function,
+          each with a different combination of shift states in the call mask;
+          calling this function again with a call mask of 0000h undefines the
+          specified handler (official documentation); specifying the same
+          call mask and an address of 0000h:0000h undefines the handler (real
+          life)
+        some versions of the documentation erroneously reverse the order of
+          the bits in the call mask
+SeeAlso: AX=000Ch,AX=0014h,AX=0019h
+
+Bitfields for mouse call mask:
+Bit(s)  Description     (Table 1621)
+ 0      call if mouse moves
+ 1      call if left button pressed
+ 2      call if left button released
+ 3      call if right button pressed
+ 4      call if right button released
+ 5      call if shift button pressed during event
+ 6      call if ctrl key pressed during event
+ 7      call if alt key pressed during event
+Note:   at least one of 5-7 must be set
+
+(Table 1622)
+Values user handler is called with:
+        AX = condition mask (same bit assignments as call mask)
+        BX = button state
+        CX = cursor column
+        DX = cursor row
+        SI = horizontal mickey count
+        DI = vertical mickey count
+Return: registers preserved
+Note:   in text modes, the row and column will be reported as a multiple of
+          the cell size, typically 8x8 pixels
+--------M-330019-----------------------------
+INT 33 - MS MOUSE v6.0+ - RETURN USER ALTERNATE INTERRUPT VECTOR
+        AX = 0019h
+        CX = call mask (see #1621)
+Return: BX:DX = user interrupt vector
+        CX = call mask (0000h if not found)
+Note:   attempts to find a user event handler (defined by function 18h)
+          whose call mask matches CX
+SeeAlso: AX=0018h
+--------M-33001F-----------------------------
+INT 33 - MS MOUSE v6.0+ - DISABLE MOUSE DRIVER
+        AX = 001Fh
+Return: AX = status
+            001Fh successful
+                ES:BX = INT 33 vector before mouse driver was first installed
+            FFFFh unsuccessful
+Notes:  restores vectors for INT 10 and INT 71 (8086) or INT 74 (286/386)
+        if you restore INT 33 to ES:BX, driver will be completely disabled
+        many drivers return AX=001Fh even though the driver has been disabled
+SeeAlso: AX=0020h
+--------M-330020-----------------------------
+INT 33 - MS MOUSE v6.0+ - ENABLE MOUSE DRIVER
+        AX = 0020h
+Return: AX = status
+            0020h successful
+            FFFFh unsuccessful
+Notes:  restores vectors for INT 10h and INT 71h (8086) or INT 74h (286/386)
+          which were removed by function 1Fh
+        Microsoft's documentation states that no value is returned
+SeeAlso: AX=001Fh
+--------M-330028-----------------------------
+INT 33 - MS MOUSE v7.0+ - SET VIDEO MODE
+        AX = 0028h
+        CX = new video mode (call is NOP if 0000h)
+        DH = Y font size (00h = default)
+        DL = X font size (00h = default)
+Return: CL = status (00h = successful)
+Notes:  DX is ignored unless the selected video mode supports font size control
+        when CX=0000h, an internal flag that had been set by a previous call
+          is cleared; this is required before a mouse reset
+SeeAlso: AX=0029h,INT 10/AH=00h
+--------M-330029-----------------------------
+INT 33 - MS MOUSE v7.0+ - ENUMERATE VIDEO MODES
+        AX = 0029h
+        CX = previous video mode
+            0000h get first supported video mode
+            other get next supported mode after mode CX
+Return: CX = first/next video mode (0000h = no more video modes)
+        DS:DX -> description of video mode or 0000h:0000h if none
+Notes:  the enumerated video modes may be in any order and may repeat
+        the description string (if available) is terminated by '$' followed by
+          a NUL byte
+SeeAlso: AX=0028h
+*****************************************************************************
+--------M-330010-----------------------------
+INT 33 - MS MOUSE v1.0+ - DEFINE SCREEN REGION FOR UPDATING
+        AX = 0010h
+        CX,DX = X,Y coordinates of upper left corner
+        SI,DI = X,Y coordinates of lower right corner
+Note:   mouse cursor is hidden in the specified region, and needs to be
+          explicitly turned on again
+SeeAlso: AX=0001h,AX=0002h,AX=0007h,AX=0010h"Genius MOUSE",AX=0031h
+--------M-330026-----------------------------
+INT 33 - MS MOUSE v6.26+ - GET MAXIMUM VIRTUAL COORDINATES
+        AX = 0026h
+Return: BX = mouse-disabled flag (0000h mouse enabled, nonzero disabled)
+        CX = maximum virtual X (for current video mode)
+        DX = maximum virtual Y
+Note:   for driver versions before 7.05, this call returns the currently-set
+          maximum coordinates; v7.05+ returns the absolute maximum coordinates
+SeeAlso: AX=0031h
+--------M-330031-----------------------------
+INT 33 - MS MOUSE v7.05+ - GET CURRENT MINIMUM/MAXIMUM VIRTUAL COORDINATES
+        AX = 0031h
+Return: AX = virtual X minimum
+        BX = virtual Y minimum
+        CX = virtual X maximum
+        DX = virtual Y maximum
+Note:   the minimum and maximum values are those set by AX=0007h and AX=0008h;
+          the default is minimum = 0 and maximum = absolute maximum
+          (see AX=0026h)
+SeeAlso: AX=0007h,AX=0008h,AX=0010h,AX=0026h
+
